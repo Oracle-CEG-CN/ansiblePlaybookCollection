@@ -1,0 +1,49 @@
+# Ansible playbook to ensure we have nginx installed and that the service is enabled and 
+# running The playbook has been tested on Oracle Linux 7 running on Oracle Cloud with an 
+# Oracle provided image. 
+#
+# Optionally you could add the installation of s3fs-fuse by uncommenting the associated 
+# lines to the flow when and where needed. 
+#
+# The intention of this playbook is to provide an example ansible playbook on how a higher
+# level of automation can be reached. This playbook is NOT intended to be used in any real
+# life situation. No warranties are provided and this code is NOT an official Oracle 
+# product. Please refer to the assiciated license file for addtional information.
+
+
+- name: Install nginx and ensure the service is enabled and running on the host. 
+  hosts: 127.0.0.1
+  connection: local
+  tasks:
+  - name: add the nginx yum repo
+    yum_repository:
+      name: nginx repo
+      description: nginx repo
+      baseurl: http://nginx.org/packages/rhel/7/$basearch/
+      gpgcheck: no
+      enabled: yes
+  - name: Ensure we do NOT have apache httpd installed
+    yum:
+      name: httpd
+      state: absent
+#  - name: Ensure we have s3fs-fuse installed
+#    yum:
+#      name: s3fs-fuse
+#      state: present
+  - name: Ensure we have ngnix installed
+    yum:
+      name: nginx
+      state: present
+  - block:
+     - name: ensure that ngnix service is enabled and started
+       service:
+         name: ngnix
+         enabled: yes
+         state: started
+    rescue:
+      - name: Recover from failure - ensure nginx service is enabled for autostart
+        ansible.builtin.shell:
+          cmd: systemctl enable nginx
+      - name: Recover from failure - ensure nginx service is started
+        ansible.builtin.shell:
+          cmd: systemctl start nginx
